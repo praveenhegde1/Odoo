@@ -1,0 +1,992 @@
+<?xml version="1.0"?>
+<odoo>
+    <template id="track_shipment" name="Track Shipment">
+        <t t-call="website.layout">
+            <div class="container mt8">
+                <div class="row">
+                    <h1 class="page-header">Track Your Shipment</h1>
+                    <br/>
+                    <br/>
+                    <t t-call="portal.portal_table">
+                        <form action="/track/shipment" method="post" enctype="multipart/form-data">
+                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                            <div class="modal-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <input type="text" style="margin: 166px;" class="form-control o_website_form_input" placeholder="Type Your Tracking Number, Example., DIRECT/2019/01/28/00001" name="tracking_number"/>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <button class="btn btn-success" style="margin: 166px;">Track</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </t>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="freight_success">
+        <t t-call="website.layout">
+            <div class="container mt8">
+                <div class="row">
+                    <div class="col-md-12 col-md-offset-3">
+                        <table class="table table-bordered tenders-table" style="width: 100%;bordercolor:#875a7b">
+                            <thead>
+                                <tr align="center" bgcolor="#875a7b">
+                                    <th colspan="3" style="color: #f9f9f9;" align="center">Shipment Details: <b><t class="badge badge-danger" t-esc="freight.name"/></b></th>
+                                </tr>
+                                <tr style="bgcolor:#ffad99">
+                                    <th>Source Location</th>
+                                    <th>Destination Location</th>
+                                    <th>Main Carriage Transport</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><t t-esc="freight.source_location_id.name"/> </td>
+                                    <td><t t-esc="freight.destination_location_id.name"/> </td>
+                                    <td><span t-esc="freight.transport" style="font-size: 17px;" class="badge badge-success"/></td>
+                                </tr>
+                            </tbody>
+                            <thead>
+                                <tr  align="center" bgcolor="#875a7b">
+                                    <th colspan="3" style="color: #f9f9f9;" align="center">Tracking</th>
+                                </tr>
+                                <tr style="bgcolor:#ffad99">
+                                    <th>Date</th>
+                                    <th>Location</th>
+                                    <th>Activity</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="freight.freight_log" t-as="log">
+                                    <td><t t-esc="log.date"/> </td>
+                                    <td><t t-esc="log.location"/> </td>
+                                    <td><t t-esc="log.description"/> </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <record id="page_shipment" model="website.page">
+        <field name="website_published">True</field>
+        <field name="url">/shipment</field>
+        <field name="view_id" ref="track_shipment"/>
+    </record>
+
+    <record id="menu_shipment" model="website.menu">
+        <field name="name">Track Shipment</field>
+        <field name="page_id" ref="page_shipment" />
+    </record>
+
+    <!--    Bookings Part-->
+    <template id="portal_my_bookings" name="My Bookings">
+        <t t-call="portal.portal_layout">
+            <style>
+                .my-button {
+                border-radius: 24px;
+                background-color: #7C7BAD;
+                border: none;
+                color: #FFFFFF;
+                text-align: center;
+                font-size: 14px;
+                padding: 11px;
+                transition: all 0.5s;
+                cursor: pointer;
+                margin: 5px;
+                width:170px;
+                }
+
+                .my-button span {
+                cursor: pointer;
+                display: inline-block;
+                position: relative;
+                transition: 0.2s;
+                }
+
+                .my-button span:after {
+                content: '\00bb';
+                position: absolute;
+                opacity: 0;
+                top: 0;
+                right: -20px;
+                transition: 0.2s;
+                }
+
+                .my-button:hover span {
+                padding-right: 25px;
+                color:#FFFFFF;
+                }
+
+                .my-button:hover span:after {
+                opacity: 1;
+                right: 0;
+                }
+            </style>
+            <div class="container mt8">
+                <div class="row" style="margin-left: 1px;">
+                    <a href="/createbooking" class="my-button"><span><b>Create Booking</b></span></a>
+                </div>
+                <t t-if="not bookings">
+                    <p>There are currently no bookings for your account.</p>
+                </t>
+                <t t-if="bookings">
+                    <div t-attf-class="table-responsive border rounded border-top-0">
+                        <table class="table rounded mb-0 bg-white o_portal_my_doc_table table table-striped">
+                            <thead style="background-color: #7C7BAD;color: white;">
+                                <tr class="active">
+                                    <th style="width:25%;">Booking #</th>
+                                    <th class="text-right">Operation</th>
+                                    <th class="text-right">Transport</th>
+                                    <th class="text-right">Direction</th>
+                                    <th class="text-right">Shipper</th>
+                                    <th class="text-right">Consignee</th>
+                                    <th class="text-right">Source</th>
+                                    <th class="text-right">Destination</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="bookings" t-as="booking">
+                                    <tr>
+                                        <td>
+                                            <a t-attf-href="/freight_bookings/details/{{ slug(booking) }}">
+                                                <t t-esc="booking.name"/>
+                                            </a>
+                                        </td>
+                                        <td class="text-right"><span  t-field="booking.operation"/></td>
+                                        <td class="text-right">
+                                            <t t-if="booking.transport == 'ocean'">
+                                                <span style="font-size:15px;" class="badge badge-primary" t-field="booking.transport"/>
+                                            </t>
+                                            <t t-if="booking.transport == 'land'">
+                                                <span style="font-size:15px;" class="badge badge-success"  t-field="booking.transport"/>
+                                            </t>
+                                            <t t-if="booking.transport == 'air'">
+                                                <span style="font-size:15px;"  class="badge badge-danger" t-field="booking.transport"/>
+                                            </t>
+                                        </td>
+                                        <td class="text-right"><span t-field="booking.direction"/></td>
+                                        <td class="text-right">
+                                            <span t-field="booking.shipper_id.name"/>
+                                        </td>
+                                        <td class="text-right">
+                                            <span t-field="booking.consignee_id.name"/>
+                                        </td>
+                                        <td class="text-right">
+                                            <span t-field="booking.source_location_id.name"/>
+                                        </td>
+                                        <td class="text-right">
+                                            <span t-field="booking.destination_location_id.name"/>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </div>
+                </t>
+            </div>
+        </t>
+    </template>
+
+    <template id="portal_my_booking_detail" name="My Booking Details">
+        <t t-call="website.layout">
+            <div class="container">
+                <br/>
+                <br/>
+                <br/>
+                <div class="col-12 row">
+                    <div class="col-1">
+
+                    </div>
+                    <div class="col-10">
+                        <h1>
+                            <span t-field="booking.name"/>
+                        </h1>
+                    </div>
+
+                    <div class="col-1">
+
+                    </div>
+                </div>
+                <br/>
+                <br/>
+                <div class="col-12 row">
+                    <div class="col-1">
+
+                    </div>
+                    <div class="col-5">
+                        <span style="color:#7C7BAD;font-weight:bold;font-size:21px;">Operation</span><br/><br/>
+                        <span><b>Direction:</b> <span t-field="booking.direction"/> </span>
+                    </div>
+
+                    <div class="col-5">
+                        <br/><br/>
+                        <span><b>Transport:</b> <span t-field="booking.transport"/> </span>
+                        <br/>
+                        <br/>
+                        <t t-if="booking.transport !='air'">
+                            <t t-if="booking.transport =='ocean'">
+                                <span><b>Ocean Shipment Type:</b> <span t-field="booking.ocean_shipment_type"/> </span>
+                            </t>
+                            <t t-if="booking.transport =='land'">
+                                <span><b>Inland Shipment Type:</b> <span t-field="booking.inland_shipment_type"/> </span>
+                            </t>
+                        </t>
+                    </div>
+                    <div class="col-1">
+
+                    </div>
+                </div>
+                <t t-if="booking.transport == 'air'">
+                    <div class="col-12 row">
+                        <div class="col-1">
+
+                        </div>
+                        <div class="col-5">
+                            <span style="color:#7C7BAD;font-weight:bold;font-size:21px;">Shipper</span><br/><br/>
+                            <span><b>Shipper:</b> <span t-field="booking.shipper_id.display_name"/> </span>
+                        </div>
+                        <div class="col-5">
+                            <span style="color:#7C7BAD;font-weight:bold;font-size:21px;">Consignee</span><br/><br/>
+                            <span><b>Consignee:</b> <span t-field="booking.consignee_id.display_name"/> </span>
+                        </div>
+                        <div class="col-1">
+
+                        </div>
+                    </div>
+                    <br/>
+                    <br/>
+                    <div class="col-12 row">
+                        <div class="col-1">
+
+                        </div>
+                        <div class="col-5">
+                            <span style="color:#7C7BAD;font-weight:bold;font-size:21px;">Main Carriage</span><br/><br/>
+                            <span><b>Gateway:</b> <span t-field="booking.source_location_id.name"/> </span><br/>
+                            <span><b>MAWB No:</b> <span t-field="booking.mawb_no"/> </span><br/>
+                        </div>
+                        <div class="col-5">
+                            <br/><br/>
+                            <span><b>Destination:</b> <span t-field="booking.destination_location_id.name"/></span><br/>
+                            <span><b>Airline:</b> <span t-field="booking.airline_id.name"/></span><br/>
+                            <span><b>Flight No:</b> <span t-field="booking.flight_no"/></span><br/>
+                            <span><b>Date:</b> <span t-field="booking.datetime"/></span><br/>
+                        </div>
+                        <div class="col-1">
+
+                        </div>
+                    </div>
+                    <br/>
+                    <br/>
+                    <div class="col-12 row">
+                        <div class="col-1">
+
+                        </div>
+                        <div class="col-5">
+                            <span style="color:#7C7BAD;font-weight:bold;font-size:21px;">General</span><br/><br/>
+                            <span><b>Barcode:</b> <span t-field="booking.barcode"/> </span><br/>
+                            <span><b>Agent:</b> <span t-field="booking.agent_id.display_name"/> </span><br/>
+                            <span><b>User:</b> <span t-field="booking.operator_id.name"/> </span><br/>
+                            <span><b>Freight PC:</b> <span t-field="booking.freight_pc"/> </span><br/>
+                            <span><b>Other PC:</b> <span t-field="booking.other_pc"/> </span><br/>
+                            <span><b>Notes:</b> <span t-field="booking.notes"/> </span><br/>
+                        </div>
+                        <div class="col-5">
+                            <br/><br/>
+                            <span><b>Dangerous Goods:</b>
+                                <t t-if="booking.dangerous_goods == True">
+                                    <input  type="checkbox" checked="True" disabled="True"/>
+                                </t>
+                                <t t-else="booking.dangerous_goods == False">
+                                    <input  type="checkbox" disabled="True"/>
+                                </t>
+                            </span><br/>
+
+                            <t t-if="booking.dangerous_goods">
+                                <span><b>Dangerous Goods Info:</b> <span t-field="booking.dangerous_goods_notes"/></span><br/>
+                            </t>
+                            <span><b>Move Type:</b> <span t-field="booking.move_type.name"/></span><br/>
+                            <span><b>Tracking Numver:</b> <span t-field="booking.tracking_number"/></span><br/>
+                            <span><b>Incoterm:</b> <span t-field="booking.incoterm.name"/></span><br/>
+                        </div>
+                        <div class="col-1">
+
+                        </div>
+                    </div>
+                </t>
+
+                <t t-if="booking.transport == 'ocean'">
+                    <div class="col-12 row">
+                        <div class="col-1">
+
+                        </div>
+                        <div class="col-5">
+                            <br/>
+                            <span style="color:#7C7BAD;font-weight:bold;font-size:21px;">Shipper</span><br/><br/>
+                            <span><b>Shipper:</b> <span t-field="booking.shipper_id.display_name"/> </span>
+                        </div>
+                        <div class="col-5">
+                            <br/>
+                            <span style="color:#7C7BAD;font-weight:bold;font-size:21px;">Consignee</span><br/><br/>
+                            <span><b>Consignee:</b> <span t-field="booking.consignee_id.display_name"/> </span>
+                        </div>
+                        <div class="col-1">
+
+                        </div>
+                    </div>
+                    <br/>
+                    <br/>
+                    <div class="col-12 row">
+                        <div class="col-1">
+
+                        </div>
+                        <div class="col-5">
+                            <span style="color:#7C7BAD;font-weight:bold;font-size:21px;">Main Carriage</span><br/><br/>
+                            <span><b>Loading Port:</b> <span t-field="booking.source_location_id.name"/> </span><br/>
+                            <span><b>Shipping Line:</b> <span t-field="booking.shipping_line_id.display_name"/> </span><br/>
+                            <span><b>Voyage No:</b> <span t-field="booking.voyage_no"/> </span><br/>
+                            <span><b>Vessel:</b> <span t-field="booking.vessel_id.name"/> </span><br/>
+                            <span><b>OBL:</b> <span t-field="booking.obl"/> </span><br/>
+                        </div>
+                        <div class="col-5">
+                            <br/><br/>
+                            <span><b>Discharge Port :</b> <span t-field="booking.destination_location_id.name"/></span><br/>
+                            <span><b>Date:</b> <span t-field="booking.datetime"/></span><br/>
+                        </div>
+                        <div class="col-1">
+
+                        </div>
+                    </div>
+                    <br/>
+                    <br/>
+                    <div class="col-12 row">
+                        <div class="col-1">
+
+                        </div>
+                        <div class="col-5">
+                            <span style="color:#7C7BAD;font-weight:bold;font-size:21px;">General</span><br/><br/>
+                            <span><b>Barcode:</b> <span t-field="booking.barcode"/> </span><br/>
+                            <span><b>Agent:</b> <span t-field="booking.agent_id.display_name"/> </span><br/>
+                            <span><b>User:</b> <span t-field="booking.operator_id.name"/> </span><br/>
+                            <span><b>Freight PC:</b> <span t-field="booking.freight_pc"/> </span><br/>
+                            <span><b>Other PC:</b> <span t-field="booking.other_pc"/> </span><br/>
+                            <span><b>Notes:</b> <span t-field="booking.notes"/> </span><br/>
+                        </div>
+                        <div class="col-5">
+                            <br/><br/>
+                            <span><b>Dangerous Goods:</b>
+                                <t t-if="booking.dangerous_goods == True">
+                                    <input  type="checkbox" checked="True" disabled="True"/>
+                                </t>
+                                <t t-else="booking.dangerous_goods == False">
+                                    <input  type="checkbox" disabled="True"/>
+                                </t>
+                            </span><br/>
+
+                            <t t-if="booking.dangerous_goods">
+                                <span><b>Dangerous Goods Info:</b> <span t-field="booking.dangerous_goods_notes"/></span><br/>
+                            </t>
+                            <span><b>Move Type:</b> <span t-field="booking.move_type.name"/></span><br/>
+                            <span><b>Tracking Numver:</b> <span t-field="booking.tracking_number"/></span><br/>
+                            <span><b>Incoterm:</b> <span t-field="booking.incoterm.name"/></span><br/>
+                        </div>
+                        <div class="col-1">
+
+                        </div>
+                    </div>
+                </t>
+
+                <t t-if="booking.transport == 'land'">
+                    <div class="col-12 row">
+                        <div class="col-1">
+
+                        </div>
+                        <div class="col-5">
+                            <br/>
+                            <span style="color:#7C7BAD;font-weight:bold;font-size:21px;">Shipper</span><br/><br/>
+                            <span><b>Shipper:</b> <span t-field="booking.shipper_id.display_name"/> </span>
+                        </div>
+                        <div class="col-5">
+                            <br/>
+                            <span style="color:#7C7BAD;font-weight:bold;font-size:21px;">Consignee</span><br/><br/>
+                            <span><b>Consignee:</b> <span t-field="booking.consignee_id.display_name"/> </span>
+                        </div>
+                        <div class="col-1">
+
+                        </div>
+                    </div>
+                    <br/>
+                    <br/>
+                    <div class="col-12 row">
+                        <div class="col-1">
+
+                        </div>
+                        <div class="col-5">
+                            <span style="color:#7C7BAD;font-weight:bold;font-size:21px;">Main Carriage</span><br/><br/>
+                            <span><b>From:</b> <span t-field="booking.source_location_id.name"/> </span><br/>
+                        </div>
+                        <div class="col-5">
+                            <br/><br/>
+                            <span><b>To:</b> <span t-field="booking.destination_location_id.name"/></span><br/>
+                            <span><b>Date:</b> <span t-field="booking.datetime"/></span><br/>
+                            <span><b>CMR/RWB#/PRO#:</b> <span t-field="booking.truck_ref"/></span><br/>
+                            <span><b>Trucker:</b> <span t-field="booking.trucker.name"/></span><br/>
+                            <span><b>Trucker No:</b> <span t-field="booking.trucker_number"/></span><br/>
+                        </div>
+                        <div class="col-1">
+
+                        </div>
+                    </div>
+                    <br/>
+                    <br/>
+                    <div class="col-12 row">
+                        <div class="col-1">
+
+                        </div>
+                        <div class="col-5">
+                            <span style="color:#7C7BAD;font-weight:bold;font-size:21px;">General</span><br/><br/>
+                            <span><b>Barcode:</b> <span t-field="booking.barcode"/> </span><br/>
+                            <span><b>Agent:</b> <span t-field="booking.agent_id.display_name"/> </span><br/>
+                            <span><b>User:</b> <span t-field="booking.operator_id.name"/> </span><br/>
+                            <span><b>Freight PC:</b> <span t-field="booking.freight_pc"/> </span><br/>
+                            <span><b>Other PC:</b> <span t-field="booking.other_pc"/> </span><br/>
+                            <span><b>Notes:</b> <span t-field="booking.notes"/> </span><br/>
+                        </div>
+                        <div class="col-5">
+                            <br/><br/>
+                            <span><b>Dangerous Goods:</b>
+                                <t t-if="booking.dangerous_goods == True">
+                                    <input  type="checkbox" checked="True" disabled="True"/>
+                                </t>
+                                <t t-else="booking.dangerous_goods == False">
+                                    <input  type="checkbox" disabled="True"/>
+                                </t>
+                            </span><br/>
+
+                            <t t-if="booking.dangerous_goods">
+                                <span><b>Dangerous Goods Info:</b> <span t-field="booking.dangerous_goods_notes"/></span><br/>
+                            </t>
+                            <span><b>Move Type:</b> <span t-field="booking.move_type.name"/></span><br/>
+                            <span><b>Tracking Numver:</b> <span t-field="booking.tracking_number"/></span><br/>
+                            <span><b>Incoterm:</b> <span t-field="booking.incoterm.name"/></span><br/>
+                        </div>
+                        <div class="col-1">
+
+                        </div>
+                    </div>
+                </t>
+                <br/>
+                <br/>
+                <br/>
+                <div class="col-12 row">
+
+                    <form style="border:1px solid rgb(255, 255, 255)" id="comment" action="/post/comment" method="post" class="modal-content" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                        <div class="row">
+                            <div class="col-1">
+
+                            </div>
+                            <div class="col-10">
+                                <textarea rows="8" name="comment" style="margin-left: 0px;margin-top: 56px;" class="form-control" placeholder="Log a note..."></textarea>
+                                <input type="hidden" name="book_id" t-att-value="booking.id"/>
+                                <button type="submit" id="post_button" class="btn btn-primary mt16" style="position: relative; overflow: hidden;">Post</button>
+                            </div>
+                            <div class="col-1">
+
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <br/>
+                <div class="row">
+                    <div class="col-1">
+
+                    </div>
+                    <t t-foreach="track_ids" t-as="track">
+                        <div class="col-md-8 col-md-offset-2">
+                            <div class="row mt16">
+                                <div class="col-xs-11">
+                                    <div>
+                                    </div>
+                                    <t t-if="track.name"><h6 class="mb4"><b>Note: </b><t t-esc="track.name"/></h6></t>
+                                    <div class="comment-date">
+                                        <span class="text-muted">by</span>
+                                        <span>
+                                            <span>
+                                                <address class="mb0">
+                                                    <div>
+                                                        <span><t t-esc="track.user_id.partner_id.name"/></span>
+                                                    </div>
+                                                    <div>
+                                                    </div>
+                                                </address>
+                                            </span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                    <div class="col-1">
+
+                    </div>
+                </div>
+                <br/>
+            </div>
+        </t>
+    </template>
+
+    <template id="portal_booking_create" name="Booking Form">
+        <t t-call="website.layout">
+            <style>
+                .grp-label{
+                font-family: Georgia, "Times New Roman", Times, serif;
+                font-size: 18px;
+                color: #333;
+                text-align: right;
+                margin-right:15px;
+                float:left;
+                }
+                .input-class{
+                border:1px solid #CED4DA;
+                height:calc(1.5em + 0.75rem + 2px);
+                }
+                .row_hover{
+                transition: box-shadow 0.3s ease-in-out;
+                border-radius: 20px;
+                }
+                .row_hover:hover {
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.8);
+                }
+                /* The container */
+                .cont {
+                display: block;
+                position: relative;
+                padding-left: 35px;
+                margin-bottom: 12px;
+                cursor: pointer;
+                font-size: 17px;
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+                }
+                .cont input {
+                position: absolute;
+                opacity: 0;
+                cursor: pointer;
+                }
+                .checkmark {
+                position: absolute;
+                top: 0;
+                left: 0;
+                height: 17px;
+                width: 17px;
+                background-color: #eee;
+                border-radius: 50%;
+                margin-top:3px;
+                }
+
+                /* On mouse-over, add a grey background color */
+                .cont:hover input ~ .checkmark {
+                background-color: #ccc;
+                }
+
+                /* When the radio button is checked, add a blue background */
+                .cont input:checked ~ .checkmark {
+                background-color: #2196F3;
+                }
+
+            </style>
+            <div class="container">
+                <form action="/submit_booking"  method="post" enctype="multipart/form-data">
+                    <br/>
+                    <br/>
+                    <br/>
+                    <div class="col-12 row row_hover">
+                        <br/>
+                        <div class="col-1">
+
+                        </div>
+                        <div class="col-5">
+                            <br/>
+                            <span style="color:#7C7BAD;font-weight:bold;font-size: 147%">Operation</span><br/>
+                            <br/>
+                            <b style="color:#7C7BAD;">Type:</b><br/>
+                            <select id="operation" name="operation" style="margin-top: 10px;" required="True" class="form-control">
+                                <option value="direct" >Direct</option>
+                                <option value="master" >Master</option>
+                                <option value="house" >House</option>
+                            </select>
+                            <br/>
+                            <b style="color:#7C7BAD;">Direction:</b><br/><br/>
+
+                            <label class="cont" for="import" style="margin-right:10px;">Import
+                                <input type="radio" id="import" name="direction" value="import"/>
+                                <span class="checkmark"></span>
+
+                            </label>
+
+                            <label class="cont"  for="export">Export
+                                <input type="radio" id="export" name="direction" value="export"/>
+                                <span class="checkmark"></span>
+                            </label><br/>
+
+                        </div>
+
+                        <div class="col-5" style="margin-top:-5px;">
+                            <br/><br/><br/><br/>
+                            <b style="color:#7C7BAD;">Transport:</b><br/>
+                            <label class="cont" for="air" style="margin-right:10px;margin-top: 10px;">Air
+                                <input type="radio" id="air" name="transport" value="air"/>
+                                <span class="checkmark"></span>
+                            </label>
+
+                            <label  class="cont" for="ocean" style="margin-right:10px;">Ocean
+                                <input type="radio" id="ocean" name="transport" value="ocean"/>
+                                <span class="checkmark"></span>
+                            </label>
+
+                            <label class="cont"  for="land">Land
+                                <input type="radio" id="land" name="transport" value="land"/>
+                                <span class="checkmark"></span>
+                            </label><br/><br/>
+
+                            <div id="ocean_div">
+                                <b style="color:#7C7BAD;">Ocean Shipment Type:</b><br/><br/>
+
+                                <label class="cont"  for="fcl" style="margin-right:10px;">FCL
+                                    <input type="radio" id="fcl" name="ocean" value="fcl"/>
+                                    <span class="checkmark"></span>
+                                </label>
+
+                                <label class="cont"  for="lcl" style="margin-right:10px;">LCL
+                                    <input type="radio" id="lcl" name="ocean" value="lcl"/>
+                                    <span class="checkmark"></span>
+                                </label>
+                            </div>
+                            <div id="land_div">
+                                <b style="color:#7C7BAD;">Inland Shipment Type:</b><br/><br/>
+
+                                <label class="cont"  for="ftl" style="margin-right:10px;">FTL
+                                    <input type="radio" id="ftl" name="land" value="ftl"/>
+                                    <span class="checkmark"></span>
+                                </label>
+
+                                <label  class="cont" for="ltl" style="margin-right:10px;">LTL
+                                    <input type="radio" id="ltl" name="land" value="ltl"/>
+                                    <span class="checkmark"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-1">
+
+                        </div>
+                        <br/>
+                    </div>
+                    <br/>
+                    <br/>
+                    <div class="col-12 row row_hover">
+                        <br/>
+                        <div class="col-1">
+                        </div>
+                        <div class="col-2">
+                            <br/>
+                            <label for="shipper">Shipper:</label><br/><br/><br/>
+                        </div>
+                        <div class="col-3">
+                            <br/>
+                            <select id="shippers" name="shipper" required="True" class="form-control">
+                                <t t-foreach="partners" t-as="partner">
+                                    <option t-att-value="partner.id" t-esc="partner.display_name"/></t>
+                            </select>
+                        </div>
+                        <div class="col-2">
+                            <br/>
+                            <label for="consignee">Consignee:</label><br/><br/><br/>
+                        </div>
+                        <div class="col-3">
+                            <br/>
+                            <select id="consignee" name="consignee" required="True" class="form-control">
+                                <t t-foreach="partners" t-as="partner">
+                                    <option t-att-value="partner.id" t-esc="partner.display_name"/></t>
+                            </select>
+                        </div>
+                        <div class="col-1">
+
+                        </div>
+                        <br/>
+                    </div>
+                    <br/>
+                    <br/>
+                    <div class="col-12 row row_hover" id="main_data">
+                        <br/>
+                        <div class="col-1">
+
+                        </div>
+                        <div class="col-2">
+                            <span style="color:#7C7BAD;font-weight:bold;font-size: 147%">Main Carriage</span><br/><br/>
+                            <div id="air_lbl_1">
+                                <label id="air_source_location_id"  for="air_source_location_id" style="margin-top: 10px;">Gateway:</label><br/>
+                                <label id="mawb_lbl" style="margin-top: 27px;" for="mawb">MAWB No:</label><br/>
+                                <br/>
+                            </div>
+                            <div id="ocean_lbl_1" style="display:none;">
+                                <label id="landing_lbl" style="margin-top: 12px;" for="ocean_source_location_id">Landing Port:</label><br/>
+                                <label id="shp_line_lbl" style="margin-top: 30px;"  for="shipping_line_id">Shiping Line:</label><br/>
+                                <label id="voyage_lbl" style="margin-top: 31px;"  for="voyage_no">Voyage No:</label><br/>
+                                <label id="vessel_lbl"  style="margin-top: 30px;" for="vessel_id">Vessel:</label><br/>
+                                <label id="obl_lbl"  style="margin-top: 26px;" for="obl">OBL:</label><br/>
+                                <br/>
+                            </div>
+                            <div id="land_lbl_1" style="display:none;">
+                                <label id="from_lbl" style="margin-top: 14px;" for="land_source_location_id">From:</label><br/>
+                                <br/>
+                            </div>
+
+                        </div>
+
+                        <div class="col-3">
+                            <br/><br/>
+                            <div id="air_data_1">
+                                <br/>
+                                <select id="air_source_location_id" name="air_source_location_id" required="True" class="form-control">
+                                    <t t-foreach="gateways" t-as="gate">
+                                        <option t-att-value="gate.id" t-esc="gate.name"/></t>
+                                </select>
+                                <br/>
+                                <input name="mawb" class="input-class form-control" id="mawb" /><br/>
+                                <br/>
+                            </div>
+                            <div id="ocean_data_1" style="display:none;">
+                                <br/>
+                                <select id="ocean_source_location_id" name="ocean_source_location_id" required="True" class="form-control">
+                                    <t t-foreach="gateways" t-as="gate">
+                                        <option t-att-value="gate.id" t-esc="gate.name"/></t>
+                                </select>
+                                <br/>
+                                <select id="shipping_line_id" name="shipping_line_id" required="True" class="form-control">
+                                    <t t-foreach="partners" t-as="partner">
+                                        <option t-att-value="partner.id" t-esc="partner.display_name"/></t>
+                                </select>
+                                <br/>
+                                <input name="voyage_no" class="input-class form-control" id="voyage_no" />
+                                <br/>
+                                <select id="vessel_id" name="vessel_id" required="True" class="form-control">
+                                    <t t-foreach="vessels" t-as="vess">
+                                        <option t-att-value="vess.id" t-esc="vess.name"/></t>
+                                </select>
+                                <br/>
+                                <input name="obl" class="input-class form-control" id="obl" />
+                                <br/>
+                            </div>
+                            <div id="land_data_1" style="display:none;">
+                                <br/>
+                                <select id="land_source_location_id" name="land_source_location_id" required="True" class="form-control">
+                                    <t t-foreach="gateways" t-as="gate">
+                                        <option t-att-value="gate.id" t-esc="gate.name"/></t>
+                                </select>
+                                <br/>
+                            </div>
+                        </div>
+
+                        <div class="col-2">
+                            <br/><br/>
+                            <div id="air_lbl_2">
+                                <br/>
+                                <label id="source_lbl" for="air_destination_location_id">Destination:</label><br/>
+                                <label id="airline_lbl" style="margin-top: 27px;" for="airline">Airline:</label><br/>
+                                <label id="flight_no_lbl" style="margin-top: 31px;" for="flight_no">Flight No:</label><br/>
+                                <label id="date_lbl" style="margin-top: 33px;" for="date">Date:</label><br/><br/>
+                            </div>
+                            <div id="ocean_lbl_2" style="display:none;">
+                                <br/>
+                                <label id="discharge_lbl"  for="ocean_destination_location_id">Discharge Port:</label><br/>
+                                <label id="date_lbl" style="margin-top: 27px;" for="date_ocean">Date:</label><br/>
+                                <br/>
+                            </div>
+                            <div id="land_lbl_2" style="display:none;">
+                                <br/>
+                                <label id="to_lbl" style="margin-top: 6px;" for="land_destination_location_id">To:</label><br/>
+                                <label id="date_lbl" style="margin-top: 26px;"  for="date_land">Date:</label><br/>
+                                <label id="cmr_lbl" style="margin-top: 29px;"  for="cmr_no">CMR/RWB#/PRO#:</label><br/>
+                                <label id="trucker_lbl"  style="margin-top: 29px;" for="trucker">Trucker:</label><br/>
+                                <label id="trucker_no_lbl"  style="margin-top: 36px;" for="trucker_number">Trucker No:</label><br/>
+                                <br/>
+                            </div>
+                        </div>
+
+                        <div class="col-3">
+                            <br/><br/>
+                            <div id="air_data_2">
+                                <br/>
+                                <select id="air_destination_location_id" name="air_destination_location_id" required="True" class="form-control">
+                                    <t t-foreach="gateways" t-as="gate">
+                                        <option t-att-value="gate.id" t-esc="gate.name"/></t>
+                                </select>
+                                <br/>
+                                <select id="airline" name="airline" required="True" class="form-control">
+                                    <t t-foreach="airlines" t-as="air">
+                                        <option t-att-value="air.id" t-esc="air.name"/></t>
+                                </select>
+                                <br/>
+                                <input name="flight_no" class="input-class form-control" id="flight_no" />
+                                <br/>
+                                <input name="date" type="datetime-local" class="input-class form-control" id="date" />
+                                <input type="text" style="display:none"   name="new_date" id="new_date"/>
+                                <br/>
+                            </div>
+                            <div id="ocean_data_2" style="display:none;">
+                                <br/>
+                                <select id="ocean_destination_location_id" name="ocean_destination_location_id" required="True" class="form-control">
+                                    <t t-foreach="gateways" t-as="gate">
+                                        <option t-att-value="gate.id" t-esc="gate.name"/></t>
+                                </select>
+                                <br/>
+                                <input name="date" type="datetime-local" class="input-class form-control" id="date" />
+                                <input type="text" style="display:none"   name="new_date" id="new_date"/>
+                                <br/>
+                            </div>
+                            <div id="land_data_2" style="display:none;">
+                                <br/>
+                                <select id="land_destination_location_id" name="land_destination_location_id" required="True" class="form-control">
+                                    <t t-foreach="gateways" t-as="gate">
+                                        <option t-att-value="gate.id" t-esc="gate.name"/></t>
+                                </select>
+                                <br/>
+                                <input name="date" type="datetime-local" class="input-class form-control" id="date" />
+                                <input type="text" style="display:none"   name="new_date" id="new_date"/>
+                                <br/>
+                                <input name="cmr_no" class="input-class form-control" id="cmr_no"/>
+                                <br/>
+                                <select id="trucker" name="trucker" required="True" class="form-control">
+                                    <t t-foreach="truckers" t-as="truck">
+                                        <option t-att-value="truck.id" t-esc="truck.name"/></t>
+                                </select>
+                                <br/>
+                                <input name="trucker_number" class="input-class form-control" id="trucker_number"/>
+                                <br/>
+                            </div>
+                        </div>
+
+                        <div class="col-1">
+
+                        </div>
+                        <br/>
+                    </div>
+                    <br/>
+                    <br/>
+                    <div class="col-12 row row_hover">
+                        <br/>
+                        <div class="col-1">
+
+                        </div>
+
+                        <div class="col-2">
+                            <span style="color:#7C7BAD;font-weight:bold;font-size: 147%">General</span><br/><br/>
+                            <label for="barcode" style="margin-top: 10px;">Barcode:</label><br/><br/>
+                            <label for="agent_id" style="margin-top: 6px;">Agent:</label><br/><br/>
+                            <label for="operator_id" style="margin-top: 6px;">User:</label><br/><br/>
+                            <label for="freight_pc" style="margin-top: 17px;">Freight PC:</label><br/><br/>
+                            <label for="other_pc" style="margin-top: 4px;">Other PC:</label><br/><br/>
+                            <label for="notes"  style="margin-top: 4px;">Notes:</label><br/><br/>
+                            <br/>
+                        </div>
+                        <div class="col-3">
+                            <br/><br/><br/>
+                            <input name="barcode" class="input-class form-control" id="barcode" /><br/>
+                            <select id="agent_id" name="agent_id" required="True" class="form-control">
+                                <t t-foreach="partners" t-as="partner">
+                                    <option t-att-value="partner.id" t-esc="partner.display_name"/></t>
+                            </select><br/>
+                            <select id="operator_id" name="operator_id" required="True" class="form-control">
+                                <t t-foreach="users" t-as="user">
+                                    <option t-att-value="user.id" t-esc="user.name"/></t>
+                            </select><br/>
+                            <select id="freight_pc" name="freight_pc" required="True" class="form-control">
+                                <option value="collect" >Collect</option>
+                                <option value="prepaid" >Prepaid</option>
+                            </select><br/>
+                            <select id="other_pc" name="other_pc" required="True" class="form-control">
+                                <option value="collect" >Collect</option>
+                                <option value="prepaid" >Prepaid</option>
+                            </select><br/>
+                            <textarea id="notes" name="notes" class="form-control"/>
+                            <br/>
+                        </div>
+                        <div class="col-2">
+                            <br/><br/><br/>
+                            <label id="dg_bool" for="danger">Dangerous Goods:</label><br/>
+                            <div id="goods_info"><label id="dng_info" for="danger_info">Dangerous Goods Info:</label><br/><br/></div>
+                            <label for="move_type">Move Type:</label><br/><br/>
+                            <label for="trac_no">Tracking Number:</label><br/><br/>
+                            <label for="incoterm" style="margin-top: 6px;">Incoterm:</label><br/><br/>
+                            <label for="attachment" style="margin-top: 8px;">Attachment:</label><br/><br/>
+                            <br/>
+                        </div>
+                        <div class="col-3">
+                            <br/><br/><br/>
+                            <input  id="danger" name="danger" type="checkbox" /><br/>
+                            <textarea id="danger_info" style="resize: none;" name="danger_info" class="form-control"/><br/><br/>
+                            <select id="move_type" name="move_type" required="True" class="form-control">
+                                <t t-foreach="move_type" t-as="move">
+                                    <option t-att-value="move.id" t-esc="move.name"/></t>
+                            </select><br/>
+                            <input name="trac_no" class="input-class form-control" id="trac_no" /><br/>
+
+                            <select id="incoterm" name="incoterm" required="True" class="form-control">
+                                <t t-foreach="incoterms" t-as="inc">
+                                    <option t-att-value="inc.id" t-esc="inc.name"/></t>
+                            </select>
+                            <br/>
+                            <input type="file" name="file_booking" multiple="false"
+                                   accept="image/*,application/pdf,video/*"/>
+                            <br/>
+                        </div>
+                        <div class="col-1">
+
+                        </div>
+                        <br/>
+                    </div>
+                    <br/>
+                    <br/>
+                    <div class="col-12 row">
+                        <div class="col-1">
+                        </div>
+                        <div class="col-4">
+                        </div>
+                        <div class="col-2" style="margin-left: 46px;padding-bottom: 43px;">
+                            <button style="background-color: #7C7BAD;" type="submit" class="btn btn-primary">Create</button>
+                        </div>
+                        <div class="col-4">
+                        </div>
+                        <div class="col-1">
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+        </t>
+    </template>
+
+
+    <template id="portal_booking_create_thankyou" name="Thank You">
+        <t t-call="website.layout">
+            <div id="wrap">
+                <div class="container">
+                    <br/><br/><br/>
+                    <div class="col-md-12 text-center">
+                        <h1>Your Booking <span t-field="operation.name"/> has been created.</h1>
+                        <h4><a href="/freight_bookings">Click Here to check your bookings.</a> </h4>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+</odoo>

@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="view_freight_booking_filter" model="ir.ui.view">
+            <field name="name">freight.booking.view.search</field>
+            <field name="model">freight.booking</field>
+            <field name="arch" type="xml">
+                <search string="Search Bookings">
+                    <field name="shipper_id"/>
+                    <field name="consignee_id"/>
+                    <field name="agent_id"/>
+                    <field name="stage_id" domain="[]"/>
+                    <field name="operation"/>
+                    <filter string="Direct" domain="[('operation', '=', 'direct')]" name="direct"/>
+                    <filter string="House" domain="[('operation', '=', 'house')]" name="house"/>
+                    <filter string="Master" domain="[('operation', '=', 'master')]" name="master"/>
+                    <separator/>
+                    <group expand="0" string="Group By">
+                        <filter string="Shipper" name="shipper" domain="[]"  context="{'group_by':'shipper_id'}"/>
+                        <filter string="Consignee" name="job" domain="[]" context="{'group_by':'consignee_id'}"/>
+                        <filter string="Agent" name="degree" domain="[]" context="{'group_by':'agent_id'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <record id="helpdesk_ticket_view_kanban_bookings" model="ir.ui.view">
+            <field name="name">freight.booking.kanban</field>
+            <field name="model">freight.booking</field>
+            <field name="priority">10</field>
+            <field name="arch" type="xml">
+                <kanban default_group_by="stage_id" class="o_kanban_small_column">
+                    <field name="name"/>
+                    <field name="direction"/>
+                    <field name="operation"/>
+                    <field name="color"/>
+                    <field name="transport"/>
+                    <field name="activity_ids"/>
+                    <field name="datetime"/>
+                    <field name="activity_state"/>
+                    <templates>
+                        <t t-name="kanban-box">
+                            <div t-attf-class="oe_kanban_color_#{kanban_getcolor(record.color.raw_value)} oe_kanban_card oe_kanban_global_click">
+                                <div class="o_dropdown_kanban dropdown" groups="base.group_user">
+                                    <a class="btn dropdown-toggle" data-toggle="dropdown" href="#" role="button" >
+                                        <span class="fa fa-bars fa-lg" title="Operation Dropdown"/>
+                                    </a>
+                                    <ul class="dropdown-menu" role="menu" aria-labelledby="dLabel">
+                                        <t t-if="widget.editable"><li><a type="edit">Edit</a></li></t>
+                                        <t t-if="widget.deletable"><li><a type="delete">Delete</a></li></t>
+                                        <li><ul class="oe_kanban_colorpicker" data-field="color"/></li>
+                                    </ul>
+                                </div>
+                                <div class="oe_kanban_content">
+                                    <div><strong><field name="name"/></strong></div>
+                                    <div><strong><field name="direction"/></strong></div>
+                                    <div groups="hr.hr_dept_comp_rule">
+                                        <field name="operation"/>
+                                    </div>
+                                    <t t-if="record.datetime.raw_value and record.datetime.raw_value &lt; (new Date())" t-set="red">oe_kanban_text_red</t>
+                                    Date: <span t-attf-class="#{red}"><i><field name="datetime"/></i></span>
+                                    <br/>
+                                    <div class="oe_kanban_bottom_right">
+                                        <div class="o_kanban_inline_block">
+                                            <field name="activity_ids" widget="kanban_activity"/>
+                                        </div>
+                                    </div>
+                                    <div class="oe_clear"></div>
+                                </div>
+                            </div>
+                        </t>
+                    </templates>
+                </kanban>
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="view_freight_booking_form">
+            <field name="name">freight.booking.form</field>
+            <field name="model">freight.booking</field>
+            <field name="arch" type="xml">
+                <form string="Operations">
+                    <header>
+                        <field name="state" widget="statusbar"/>
+                        <button name="convert_to_operation" string="Convert To Shipment" states="draft" type="object" default_focus="1" class="oe_highlight"/>
+                        <button name="reset_book" string="Reset" states="converted" type="object" default_focus="1" class="oe_highlight"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_button_box" name="button_box" >
+                            <button class="oe_stat_button" name="button_shipping"
+                                    attrs="{'invisible': ['|', ('freight_id','=',False),('state','=','draft')]}"
+                                    type="object" icon="fa-truck">
+                                Shipment
+                            </button>
+                        </div>
+                        <h1>
+                            <div>
+                                <field name="name" readonly="1"/>
+                            </div>
+                        </h1>
+                        <group string="Operation">
+                            <group>
+                                <field name="operation" invisible="0" string="Type" widget="radio"/>
+                                <field name="freight_id" invisible="1"/>
+                                <field name="direction" widget="radio" />
+                            </group>
+                            <group>
+                                <field name="transport" widget="radio"/>
+                                <field name="ocean_shipment_type" widget="radio" attrs="{'invisible': [('transport','!=','ocean')]}"/>
+                                <field name="inland_shipment_type" widget="radio" attrs="{'invisible': [('transport','!=','land')]}"/>
+                            </group>
+                        </group>
+                        <group>
+                            <group string="Shipper">
+                                <field name="shipper_id" required="1"/>
+                            </group>
+                            <group string="Consignee">
+                                <field name="consignee_id" required="1"/>
+                            </group>
+                        </group>
+                        <group string="Main Carriage">
+                            <group>
+                                <label for="source_location_id" string="From" attrs="{'invisible': [('transport','!=','land')]}"/>
+                                <div attrs="{'invisible': [('transport','!=','land')]}">
+                                    <field name="source_location_id"/>
+                                </div>
+                                <label for="source_location_id" string="Loading Port" attrs="{'invisible': [('transport','!=','ocean')]}"/>
+                                <div attrs="{'invisible': [('transport','!=','ocean')]}">
+                                    <field name="source_location_id"/>
+                                </div>
+                                <label for="source_location_id" string="Gateway" attrs="{'invisible': [('transport','!=','air')]}"/>
+                                <div attrs="{'invisible': [('transport','!=','air')]}">
+                                    <field name="source_location_id"/>
+                                </div>
+                                <field name="shipping_line_id" attrs="{'invisible': [('transport','!=','ocean')]}"/>
+                                <field name="voyage_no" attrs="{'invisible': [('transport','!=','ocean')]}"/>
+                                <field name="vessel_id" attrs="{'invisible': [('transport','!=','ocean')]}"/>
+                                <field name="mawb_no" attrs="{'invisible': [('transport','!=','air')]}"/>
+                                <field name="obl" attrs="{'invisible': [('transport','!=','ocean')]}"/>
+                            </group>
+                            <group>
+                                <label for="destination_location_id" string="To" attrs="{'invisible': [('transport','!=','land')]}"/>
+                                <div attrs="{'invisible': [('transport','!=','land')]}">
+                                    <field name="destination_location_id"/>
+                                </div>
+                                <label for="destination_location_id" string="Discharge Port" attrs="{'invisible': [('transport','!=','ocean')]}"/>
+                                <div attrs="{'invisible': [('transport','!=','ocean')]}">
+                                    <field name="destination_location_id"/>
+                                </div>
+                                <label for="destination_location_id" string="Destination" attrs="{'invisible': [('transport','!=','air')]}"/>
+                                <div attrs="{'invisible': [('transport','!=','air')]}">
+                                    <field name="destination_location_id"/>
+                                </div>
+                                <field name="airline_id" attrs="{'invisible': [('transport','!=','air')]}"/>
+                                <field name="flight_no" attrs="{'invisible': [('transport','!=','air')]}"/>
+                                <field name="datetime"/>
+                                <field name="truck_ref"  attrs="{'invisible': [('transport','!=','land')]}"/>
+                                <field name="trucker"  attrs="{'invisible': [('transport','!=','land')]}"/>
+                                <field name="trucker_number"  attrs="{'invisible': [('transport','!=','land')]}"/>
+                            </group>
+                        </group>
+                        <group string="General">
+                            <group>
+                                <field name="barcode"/>
+                                <field name="agent_id" />
+                                <field name="operator_id"/>
+                                <field name="freight_pc"/>
+                                <field name="other_pc"/>
+                                <field name="notes"/>
+                            </group>
+                            <group>
+                                <field name="dangerous_goods"/>
+                                <field name="dangerous_goods_notes" attrs="{'invisible': [('dangerous_goods','!=',True)]}"/>
+                                <field name="move_type"/>
+                                <field name="tracking_number"/>
+                                <field name="incoterm"/>
+                            </group>
+                        </group>
+                    </sheet>
+                    <div class="oe_chatter">
+                        <field name="message_follower_ids" widget="mail_followers" groups="base.group_user"/>
+                        <field name="activity_ids" widget="mail_activity"/>
+                        <field name="message_ids" widget="mail_thread"/>
+                    </div>
+                </form>
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="view_freight_booking_tree">
+            <field name="name">freight.booking.tree</field>
+            <field name="model">freight.booking</field>
+            <field name="arch" type="xml">
+                <tree string="Operations">
+                    <field name="name"/>
+                    <field name="direction"/>
+                    <field name="shipper_id"/>
+                    <field name="consignee_id"/>
+                    <field name="source_location_id"/>
+                    <field name="destination_location_id"/>
+                    <field name="agent_id"/>
+                    <field name="transport"/>
+                </tree>
+            </field>
+        </record>
+
+        <record model="ir.actions.act_window" id="view_freight_booking_action">
+            <field name="name">Bookings</field>
+            <field name="res_model">freight.booking</field>
+            <field name="view_mode">kanban,tree,form</field>
+            <field name="help" type="html">
+                <p class="oe_view_nocontent_create">
+                    Click to create a new bookings.
+                </p>
+            </field>
+        </record>
+        <menuitem name="Bookings" parent="freight_operations" id="freight_house_freight_booking" action="view_freight_booking_action" sequence="5"/>
+
+    </data>
+</odoo>
